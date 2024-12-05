@@ -22,7 +22,8 @@ func (l *layerEdgeClientImpl) Store(ctx context.Context, message []byte,
 	}
 
 	blobData := new(avail.BlobPointer)
-	err = blobData.UnmarshalFromBinary(data)
+	// Need to skip one byte as it is padded using avail header
+	err = blobData.UnmarshalFromBinary(data[1:])
 	if err != nil {
 		log.Error("error in unmarshalling blob data", "error", err)
 		return nil, err

@@ -45,6 +45,11 @@ func NewLayerEdgeWriter(cfg LayerEdgeConfig) (LayerEdgeWriter, error) {
 
 	client = client.OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
 		if r.StatusCode() != http.StatusOK {
+			log.Error(
+				"status not ok", "status", r.Status(),
+				"body", string(r.Body()),
+				"curl", r.Request.GenerateCurlCommand(),
+			)
 			return fmt.Errorf("STATUS NOT OK")
 		}
 
