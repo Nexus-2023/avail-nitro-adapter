@@ -35,6 +35,7 @@ import (
 	"github.com/offchainlabs/nitro/cmd/chaininfo"
 	"github.com/offchainlabs/nitro/das"
 	"github.com/offchainlabs/nitro/das/avail"
+	"github.com/offchainlabs/nitro/das/layeredge"
 	"github.com/offchainlabs/nitro/execution"
 	"github.com/offchainlabs/nitro/execution/gethexec"
 	"github.com/offchainlabs/nitro/solgen/go/bridgegen"
@@ -90,6 +91,7 @@ type Config struct {
 	SeqCoordinator      SeqCoordinatorConfig        `koanf:"seq-coordinator"`
 	DataAvailability    das.DataAvailabilityConfig  `koanf:"data-availability"`
 	Avail               avail.DAConfig              `koanf:"avail"`
+	LayerEdge           layeredge.LayerEdgeConfig   `koanf:"layeredge"`
 	SyncMonitor         SyncMonitorConfig           `koanf:"sync-monitor"`
 	Dangerous           DangerousConfig             `koanf:"dangerous"`
 	TransactionStreamer TransactionStreamerConfig   `koanf:"transaction-streamer" reload:"hot"`
@@ -527,6 +529,7 @@ func createNodeImpl(
 	var dasLifecycleManager *das.LifecycleManager
 	var availDAWriter avail.AvailDAWriter
 	var availDAReader avail.AvailDAReader
+	var layerEdgeWriter layeredge.LayerEdgeWriter
 	var dasKeysetFetcher *das.KeysetFetcher
 	if config.DataAvailability.Enable {
 		if config.BatchPoster.Enable {
@@ -558,6 +561,15 @@ func createNodeImpl(
 		}
 		availDAWriter = availService
 		availDAReader = availService
+	}
+
+	if config.LayerEdge.Enable {
+		layerEdgeService, err := layeredge.NewLayerEdgeWriter(config.LayerEdge)
+		if err != nil {
+			return nil, err
+		}
+
+		layerEdgeWriter = layerEdgeService
 	}
 
 	// We support a nil txStreamer for the pruning code
@@ -702,6 +714,9 @@ func createNodeImpl(
 			dapWriter = daprovider.NewWriterForDAS(daWriter)
 		} else if availDAWriter != nil {
 			dapWriter = avail.NewWriterForAvailDA(availDAWriter)
+			if layerEdgeWriter != nil {
+				dapWriter = layeredge.NewLayerEdgeDAWriter(layerEdgeWriter, dapWriter)
+			}
 		}
 		batchPoster, err = NewBatchPoster(ctx, &BatchPosterOpts{
 			DataPosterDB:  rawdb.NewTable(arbDb, storage.BatchPosterPrefix),
