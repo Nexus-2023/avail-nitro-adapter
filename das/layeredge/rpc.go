@@ -17,12 +17,19 @@ type LayerEdgeWriter interface {
 
 type layerEdgeRPC struct {
 	client *resty.Client
+	url    string
 }
 
 func (l *layerEdgeRPC) AddBlockByNumber(ctx context.Context, blockNumber uint32) error {
+	modifiedPath, err := url.JoinPath(l.url, "/add-block-by-number/{block_number}")
+	if err != nil {
+		log.Error("error in joining path API", "error", err)
+		return err
+	}
+
 	resp, err := l.client.R().
 		SetPathParam("block_number", strconv.Itoa(int(blockNumber))).
-		Get("/add-block-by-number/{block_number}")
+		Get(modifiedPath)
 	if err != nil {
 		log.Error("error in calling AddBlockByNumber API", "error", err)
 		return err
@@ -48,7 +55,6 @@ func NewLayerEdgeWriter(cfg LayerEdgeConfig) (LayerEdgeWriter, error) {
 			log.Error(
 				"status not ok", "status", r.Status(),
 				"body", string(r.Body()),
-				"curl", r.Request.GenerateCurlCommand(),
 			)
 			return fmt.Errorf("STATUS NOT OK")
 		}
@@ -56,10 +62,9 @@ func NewLayerEdgeWriter(cfg LayerEdgeConfig) (LayerEdgeWriter, error) {
 		return nil
 	})
 
-	client = client.SetBaseURL(cfg.ApiURL)
-
 	l := &layerEdgeRPC{
 		client: client,
+		url:    cfg.ApiURL,
 	}
 
 	return l, nil
