@@ -160,6 +160,10 @@ all: build build-replay-env test-gen-proofs
 build: $(patsubst %,$(output_root)/bin/%, nitro deploy relay daserver datool seq-coordinator-invalidate nitro-val seq-coordinator-manager dbconv)
 	@printf $(done)
 
+.PHONY: build-node
+build-node: $(patsubst %,$(output_root)/bin/%, nitro)
+	@printf $(done)
+
 .PHONY: build-node-deps
 build-node-deps: $(go_source) build-prover-header build-prover-lib build-jit .make/solgen .make/cbrotli-lib
 
